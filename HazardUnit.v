@@ -18,23 +18,28 @@
 // Additional Comments: 
 //
 //////////////////////////////////////////////////////////////////////////////////
-`define NoHazardState	4'b0000
-`define LdHazardState	4'b0001
-`define JumpState			4'b0010
-`define Branch0State		4'b0100
-`define Branch1State		4'b1000
+`define NoHazardState	3'b000
+`define LdHazardState	3'b001
+`define JumpState			3'b010
+`define JrState			3'b011
+`define Branch0State		3'b100
+`define Branch1State		3'b101
 
-module HazardUnit(IF_Write, PC_Write, bubble, addrSel, Jump, Branch, ALUZero, 
-						memReadEX, currRs, currRt, prevRt, UseShamt, UseImmed, Clk, Rst);
+
+module HazardUnit(IF_Write, PC_Write, bubble, addrSel, Jump, Jr, Branch, ALUZero, 
+						memReadEX, currRs, currRt, prevRt, rwRegW3_rwRegW4, UseShamt, UseImmed, Clk, Rst);
 	output reg IF_Write, PC_Write, bubble;
 	output reg [1:0] addrSel;
-	input Jump, Branch, ALUZero, memReadEX, Clk, Rst;
+	input Jump, Jr, Branch, ALUZero, memReadEX, Clk, Rst;
 	input UseShamt, UseImmed;
 	input [4:0] currRs, currRt, prevRt;
-	wire LdHazard;
-	reg [3:0] currstate =`NoHazardState;
-	reg [3:0] nextstate;
+	input [11:0] rwRegW3_rwRegW4;
+	wire LdHazard, regW3, regW4;
+	wire [4:0] rw3, rw4;
+	reg [2:0] currstate =`NoHazardState;
+	reg [2:0] nextstate;
 	
+	assign {rw3, regW3, rw4, regW4} = rwRegW3_rwRegW4;
 	assign LdHazard = (((currRs == prevRt) || (currRt == prevRt)) && !UseImmed && !UseShamt && memReadEX) ? 1 : 0;
 	
 	always @(negedge Clk) begin
@@ -48,73 +53,108 @@ module HazardUnit(IF_Write, PC_Write, bubble, addrSel, Jump, Branch, ALUZero,
 		case(currstate)
 			`NoHazardState : begin
 				if(Jump) begin
-					nextstate <= `JumpState;
-					PC_Write <= 1;
-					IF_Write <= 0;
-					bubble <= 1;
-					addrSel <= 2'b01;
+					nextstate = `JumpState;
+					PC_Write = 1;
+					IF_Write = 0;
+					bubble = 0;
+					addrSel = 2'b01;
+				end else if(Jr) begin
+					if(regW3 && currRs == rw3) begin
+						nextstate = `JrState;
+						PC_Write = 0;
+						IF_Write = 0;
+						bubble= 1;
+						addrSel = 2'b01;
+					end else if(regW4 && currRs == rw4) begin
+						nextstate = `JrState;
+						PC_Write = 0;
+						IF_Write = 0;
+						bubble= 1;
+						addrSel = 2'b01;
+					end else begin
+						nextstate = `JumpState;
+						PC_Write = 1;
+						IF_Write = 0;
+						bubble = 1;
+						addrSel = 2'b01;					
+					end
 				end else if(LdHazard) begin
-					nextstate <= `LdHazardState;
-					PC_Write <= 0;
-					IF_Write <= 0;
-					bubble <= 1;
-					addrSel <= 2'b00;
+					nextstate = `LdHazardState;
+					PC_Write = 0;
+					IF_Write = 0;
+					bubble = 1;
+					addrSel = 2'b00;
 				end else if(Branch) begin
-					nextstate <= `Branch0State;
-					PC_Write <= 1;
-					IF_Write <= 1;
-					bubble <= 0;
-					addrSel <= 2'b00;
+					nextstate = `Branch0State;
+					PC_Write = 1;
+					IF_Write = 1;
+					bubble = 0;
+					addrSel = 2'b00;
 				end else begin
-					nextstate <= `NoHazardState;
-					PC_Write <= 1;
-					IF_Write <= 1;
-					bubble <= 0;
-					addrSel <= 2'b00;
+					nextstate = `NoHazardState;
+					PC_Write = 1;
+					IF_Write = 1;
+					bubble = 0;
+					addrSel = 2'b00;
 				end
 			end
 			`JumpState : begin
-				nextstate <= `NoHazardState;
-				PC_Write <= 1;
-				IF_Write <= 1;
-				bubble <= 0;
-				addrSel <= 2'b00;				
+				nextstate = `NoHazardState;
+				PC_Write = 1;
+				IF_Write = 1;
+				bubble = 0;
+				addrSel = 2'b00;				
+			end
+			`JrState : begin
+				if(regW4 && currRs == rw4) begin
+					nextstate = `JrState;
+					PC_Write = 0;
+					IF_Write = 0;
+					bubble= 1;
+					addrSel = 2'b01;
+				end else begin
+					nextstate = `JumpState;
+					PC_Write = 1;
+					IF_Write = 0;
+					bubble = 1;
+					addrSel = 2'b01;							
+				end
 			end
 			`LdHazardState : begin
-				nextstate <= `NoHazardState;
-				PC_Write <= 1;
-				IF_Write <= 1;
-				bubble <= 0;
-				addrSel <= 2'b00;					
+				nextstate = `NoHazardState;
+				PC_Write = 1;
+				IF_Write = 1;
+				bubble = 0;
+				addrSel = 2'b00;					
 			end
 			`Branch0State : begin
 				if(ALUZero) begin
-					nextstate <= `Branch1State;
-					PC_Write <= 1;
-					IF_Write <= 0;
-					bubble <= 1;
-					addrSel <= 2'b10;	
+					nextstate = `Branch1State;
+					PC_Write = 1;
+					IF_Write = 0;
+					bubble = 1;
+					addrSel = 2'b10;	
 				end else begin
-					nextstate <= `NoHazardState;
-					PC_Write <= 1;
-					IF_Write <= 1;
-					bubble <= 0;
-					addrSel <= 2'b00;					
+					nextstate = `NoHazardState;
+					PC_Write = 1;
+					IF_Write = 1;
+					bubble = 0;
+					addrSel = 2'b00;					
 				end
 			end
 			`Branch1State : begin
-				nextstate <= `NoHazardState;
-				PC_Write <= 1;
-				IF_Write <= 1;
-				bubble <= 1;
-				addrSel <= 2'b00;			
+				nextstate = `NoHazardState;
+				PC_Write = 1;
+				IF_Write = 1;
+				bubble = 1;
+				addrSel = 2'b00;			
 			end
 			default : begin
-				nextstate <= `NoHazardState;
-				PC_Write <= 1;
-				IF_Write <= 1;
-				bubble <= 0;
-				addrSel <= 2'b00;
+				nextstate = `NoHazardState;
+				PC_Write = 1;
+				IF_Write = 1;
+				bubble = 0;
+				addrSel = 2'b00;
 			end
 		endcase		
 	end	

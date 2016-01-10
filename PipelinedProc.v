@@ -54,15 +54,16 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 	wire	[5:0]	func;
 	wire	[31:0]	busA, busB, signExtImm;
 	wire	[31:0]	jumpTarget;
+	wire [11:0] rwRegW3_rwRegW4;
 	//Hazard
 	wire Bubble;
 	wire PCWrite;
 	wire IFWrite;
 	
 	//Stage 2 Control Wires
-	wire [1:0] ID_AluOpCtrlA, ID_AluOpCtrlB;
+	wire [1:0] ID_AluOpCtrlA, ID_AluOpCtrlB, regDst;
 	wire ID_DataMemForwardCtrl_EX, ID_DataMemForwardCtrl_MEM;
-	wire	regDst, memToReg, regWrite, memRead, memWrite, branch, jump, signExtend;
+	wire	memToReg, regWrite, memRead, memWrite, branch, jump, jal, jr, signExtend;
 	wire	UseShiftField, UseImmed;
 	wire	rsUsed, rtUsed;
 	wire	[4:0]	rw;
@@ -81,13 +82,14 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 	reg	[1:0] IDEX_AluOpCtrlA, IDEX_AluOpCtrlB;
 	wire	[5:0]	func3;
 	wire	[31:0]	busB3;
-	reg	[31:0]	branchDst3;
+	reg	[31:0]	branchDst3, IDEX_currentPCPlus4;
 	wire	[3:0]	aluCtrl;
 	wire	aluZero;
-	wire	[31:0]	aluOut;
+	wire	[31:0]	aluOut, exOut;
 	reg	regWrite3;
 	//Stage 3 Control
-	reg	regDst3, memToReg3, memRead3, memWrite3;
+	reg	memToReg3, memRead3, memWrite3, jal3;
+	reg [1:0] regDst3;
 	reg	[3:0]	aluOp3;
 	
 	//Stage 4
@@ -141,8 +143,8 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 	assign imm16 = Instruction2[15:0];
 	
 	PipelinedControl controller(regDst, memToReg, regWrite, memRead, memWrite, 
-										branch, jump, signExtend, aluOp, opcode);
-	assign rw = regDst ? rd : rt;
+										branch, jump, jal, jr, signExtend, aluOp, opcode, func);
+	assign rw = (regDst==2'b00) ? rt : (regDst==2'b01) ? rd : (regDst==2'b10) ? 5'b11111 : 5'bxxxxx;
 	assign UseShiftField = ((aluOp == 4'b1111) && ((func == 6'b000000) || (func == 6'b000010) || (func == 6'b000011)));
 	assign rsUsed = (opcode != 6'b001111/*LUI*/) & ~UseShiftField;
 	assign rtUsed = (opcode == 6'b0) || branch || (opcode == 6'b101011/*SW*/);
@@ -156,16 +158,17 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 								ID_AluOpCtrlA, ID_AluOpCtrlB, 
 								ID_DataMemForwardCtrl_EX, ID_DataMemForwardCtrl_MEM);
 								
-	HazardUnit hazard(IFWrite, PCWrite, Bubble, addrSel, jump, branch, aluZero, memRead3,
+	assign rwRegW3_rwRegW4 = {rw3, regWrite3, rw4, regWrite4};
+	HazardUnit hazard(IFWrite, PCWrite, Bubble, addrSel, jump, jr, branch, aluZero, memRead3,
 			rsUsed ? rs : 5'b0,	
 			rtUsed ? rt : 5'b0, 
 			regWrite ? rt3 : 5'b0,
-			UseShiftField, signExtend,	CLK, Reset_L);
+			rwRegW3_rwRegW4, UseShiftField, signExtend,	CLK, Reset_L);
 			
 	PipelinedRegisterFile Registers(busA, busB, regWriteData, rs, rt, rw5, regWrite5, CLK);
 	SignExtender immExt(signExtImm, imm16, signExtend);
 	assign branchDst = IFID_currentPCPlus4 + {signExtImm[29:0],2'b00};
-	assign jumpTarget = {currentPC[31:28], Instruction2[25:0], 2'b00};
+	assign jumpTarget = jr ? busA : {currentPC[31:28], Instruction2[25:0], 2'b00};
 
 	//Stage 3 state(context)
 	/* IDEX pipeline register */
@@ -177,6 +180,7 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 			shamt3 <= 0;
 			rw3 <= 0;
 			rt3 <= 0;
+			jal3 <= 0;
 			regDst3 <= 0;
 			memToReg3 <= 0;
 			memRead3 <= 0;
@@ -189,6 +193,7 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 			branchDst3 <= 0;
 			regWrite3 <= 0;
 //			Instruction3 <= 0;
+			IDEX_currentPCPlus4 <= 0;
 		end else if(Bubble) begin
 			IDEX_busA <= 0;
 			IDEX_busB <= 0;
@@ -196,6 +201,7 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 			shamt3 <= 0;
 			rw3 <= 0;
 			rt3 <= 0;
+			jal3 <= 0;
 			regDst3 <= 0;
 			memToReg3 <= 0;
 			memRead3 <= 0;
@@ -208,6 +214,7 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 			branchDst3 <= 0;
 			regWrite3 <= 0;
 //			Instruction3 <= 0;
+			IDEX_currentPCPlus4 <= 0;
 		end else begin
 			IDEX_busA <= busA;
 			IDEX_busB <= busB;
@@ -215,6 +222,7 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 			shamt3 <= shamt;
 			rw3 <= rw;
 			rt3 <= rt;
+			jal3 <= jal;
 			regDst3 <= regDst;
 			memToReg3 <= memToReg;
 			memRead3 <= memRead;
@@ -227,6 +235,7 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 			branchDst3 <= branchDst;
 			regWrite3 <= regWrite;
 //			Instruction3 <= Instruction2;
+			IDEX_currentPCPlus4 <= IFID_currentPCPlus4;
 		end 
 	end
 	
@@ -238,11 +247,14 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 							 (IDEX_AluOpCtrlB == 2'b01) ? regWriteData :
 							 (IDEX_AluOpCtrlB == 2'b10) ? aluOut4 : IDEX_busB;
 							 
-	assign EX_Rw = (regDst3 == 1) ? rw3 : rt3;
+//	assign EX_Rw = (regDst3 == 1) ? rw3 : rt3;
+	assign EX_Rw = (regDst3==2'b00) ? rt3 : (regDst3==2'b01) ? rw3 : (regDst==2'b10) ? 5'b11111 : 5'bxxxxx;
 	assign busB3 = IDEX_DataMemForwardCtrl_EX ? regWriteData : IDEX_busB;
 	assign func3 = signExtImm3[5:0];
 	PipelinedALUControl mainALUControl(aluCtrl, aluOp3, func3);
 	PipelinedALU mainALU(aluOut, aluZero, ALUAIn, ALUBIn, aluCtrl);
+
+	assign exOut = jal3 ? IDEX_currentPCPlus4 : aluOut;
 
 	//Stage 4 state(context)
 	// EXMEM pipeline register
@@ -259,7 +271,7 @@ module PipelinedProc(CLK, Reset_L, startPC, dMemOut);
 //			Instruction4 <= 0;
 		end
 		else begin
-			aluOut4 <= aluOut;
+			aluOut4 <= exOut;
 			EXMEM_busB <= busB3;
 			EXMEM_DataMemForwardCtrl_MEM <= IDEX_DataMemForwardCtrl_MEM;
 			rw4 <= EX_Rw;

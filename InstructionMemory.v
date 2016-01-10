@@ -62,7 +62,6 @@ module InstructionMemory(Data, Address);
 			32'h20: Data = 32'h00004020; // Rtype Rs=R0, Rt=R0, Rd=R8, shamt=0, func=ADD
 			32'h24: Data = 32'h00044820; // Rtype Rs=R0, Rt=R4, Rd=R9, shamt=0, func=ADD
 			32'h28: Data = 32'h00005020; // Rtype Rs=R0, Rt=R0, Rd=R10, shamt=0, func=ADD
-//			32'h2C: Data = 32'h00000000; // NOP
 			32'h2C: Data = 32'h11450005; // BEQ Rs=R10, Rt=R5, offset=0x0005
 			32'h30: Data = 32'h8d2b0000; // LW Rs=R9, Rt=R11, offset=0x0000
 			32'h34: Data = 32'h010b4020; // Rtype Rs=R8, Rt=R11, Rd=R8, shamt=0, func=ADD
