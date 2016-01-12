@@ -90,7 +90,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 	reg	[31:0]	branchDst3, IDEX_currentPCPlus4;
 	wire	[3:0]	aluCtrl;
 	wire	aluZero;
-	wire	[31:0]	aluOut, exOut;
+	wire	[31:0]	branchTargetNonSpec3, aluOut, exOut;
 	reg	regWrite3;
 	reg	[1:0] branch3;
 	reg	memToReg3, memRead3, memWrite3, jal3;
@@ -121,7 +121,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 	*/
 	assign nextPC = (addrSel == 2'b00) ? currentPCPlus4 : 
 						 (addrSel == 2'b01) ? jumpTarget : 
-						 (addrSel == 2'b10) ? branchDst2 : branchDst3;
+						 (addrSel == 2'b10) ? branchDst2 : branchTargetNonSpec3;
 
 	always @ (negedge CLK) begin
 		if(~Reset_L)
@@ -259,7 +259,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 	end
 	
 	Flush fh(needFlush, branch3, taken3, aluZero);
-	
+	assign branchTargetNonSpec3 = (!taken3 && needFlush) ? branchDst3 : IDEX_currentPCPlus4;
 	assign ALUAIn = (IDEX_AluOpCtrlA == 2'b00) ? signExtImm3[10:6] :  /*shamt3*/
 							 (IDEX_AluOpCtrlA == 2'b01) ? regWriteData :
 							 (IDEX_AluOpCtrlA == 2'b10) ? aluOut4 : IDEX_busA;
