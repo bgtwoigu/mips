@@ -22,6 +22,7 @@
 `define LWOPCODE 			6'b100011
 `define SWOPCODE 			6'b101011
 `define BEQOPCODE 		6'b000100
+`define BNEOPCODE			6'b000101
 `define JOPCODE 			6'b000010
 `define JALOPCODE			6'b000011
 `define ORIOPCODE 		6'b001101
@@ -65,21 +66,19 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 	output reg RegWrite;
 	output reg MemRead;
 	output reg MemWrite;
-	output reg Branch ;
+	output reg [1:0] Branch ;
 	output reg Jump, Jal, Jr;
 	output reg SignExtend;
 	output reg [3:0] ALUOp;
 	
 	always @(*) begin
 		if(Opcode == `RTYPEOPCODE) begin
-// RegDst : 1, ALUSrc1(rs) : 0,ALUSrc2(rt) : 0, MemToReg(RegSrc) : 0, RegWrite : 1,
-//	MemRead : 1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 1'bx, ALUOp :4'b1111
 				RegDst = 2'b01;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				if(FuncCode == `JRFunc) Jr = 1'b1;
@@ -87,59 +86,60 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				SignExtend = 1'b0;
 				ALUOp = `RTYP;
 		end else if(Opcode == `LWOPCODE) begin
-// Load Word
-// RegDst : 0, ALUSrc1 :0, ALUSrc2 : 1, MemToReg(RegSrc) : 1, RegWrite : 1,
-//	MemRead : 1, MemWrite :1'b0, Branch : 0, Jump : 0, SignExtend : 1, ALUOp:ADD,4'b0010
 				RegDst = 2'b00;
 				MemToReg = 1'b1;
 				RegWrite = 1'b1;
 				MemRead = 1'b1;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `ADD;
 		end else if(Opcode == `SWOPCODE) begin
-// RegDst : 0, 1'bx, ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) :1'bx, RegWrite : 0,
-//	MemRead : 0, MemWrite :1, Branch : 0, Jump : 0, SignExtend : 1, ALUOp:ADD,4'b0010
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b0;
 				MemRead = 1'b0;
 				MemWrite = 1'b1;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `ADD;
 		end else if(Opcode == `BEQOPCODE) begin
-// branch(beq)
-// RegDst : 0 1'bx, ALUSrc1 : 0,ALUSrc2 : 0, MemToReg(RegSrc) : 1'bx, RegWrite :1'b0 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 1, Jump : 0, SignExtend : 1, ALUOp :SUB ,4'b0110
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b0;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b1;
+				Branch = 2'b01;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b1;
-				ALUOp = `SUB;			
-		end else if(Opcode == `JOPCODE) begin
-//jump
-// RegDst :0 1'bx, ALUSrc1 :1'bx ,ALUSrc2 :1'bx, MemToReg(RegSrc) :1'bx, RegWrite :1'b0,
-//	MemRead :1'bx, MemWrite :1'b0, Branch :0, Jump :1, SignExtend :1'bx, ALUOp :4'bx
+				ALUOp = `SUB;	
+		end else if(Opcode == `BNEOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b0;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b11;
+				Jump = 1'b0;
+				Jal = 1'b0;
+				Jr = 1'b0;
+				SignExtend = 1'b1;
+				ALUOp = `SUB;				
+		end else if(Opcode == `JOPCODE) begin
+				RegDst = 2'b00;
+				MemToReg = 1'b0;
+				RegWrite = 1'b0;
+				MemRead = 1'b0;
+				MemWrite = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b1;
 				Jal = 1'b0;
 				Jr = 1'b0;
@@ -151,119 +151,103 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b1;
 				Jal = 1'b1;
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = 4'b0;	
 		end else if(Opcode == `ORIOPCODE) begin
-// RegDst : 0 , ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 0, ALUOp :OR,
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `OR;				
 		end else if(Opcode == `ADDIOPCODE) begin
-// RegDst : 0 , ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 1, ALUOp :ADD,
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `ADD;				
 		end else if(Opcode == `ADDIUOPCODE) begin
-// RegDst : 0 , ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 1, ALUOp :ADDU,	
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `ADDU;		
 		end else if(Opcode == `ANDIOPCODE) begin
-// RegDst : 0 , ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 0, ALUOp :AND,	
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `AND;		
 		end else if(Opcode == `LUIOPCODE) begin
-// RegDst : 0 , ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 1'bx, ALUOp :LUI,
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `LUI;			
 		end else if(Opcode == `SLTIOPCODE) begin
-// RegDst : 0 , ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 1'b1, ALUOp :SLT,
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `SLT;			
 		end else if(Opcode == `SLTIUOPCODE) begin 
-// RegDst : 0, ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 1'b1, ALUOp :SLTU,		
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `SLTU;	
 		end else if(Opcode == `XORIOPCODE) begin
-// RegDst : 0, ALUSrc1 : 0,ALUSrc2 : 1, MemToReg(RegSrc) : 1'b0, RegWrite :1'b1 ,
-//	MemRead :1'bx, MemWrite : 1'b0, Branch : 0, Jump : 0, SignExtend : 1'b0, ALUOp :XOR		
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
 				RegWrite = 1'b1;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
@@ -275,7 +259,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				RegWrite = 1'b0;
 				MemRead = 1'b0;
 				MemWrite = 1'b0;
-				Branch = 1'b0;
+				Branch = 2'b00;
 				Jump = 1'b0;
 				Jal = 1'b0;
 				Jr = 1'b0;
@@ -283,6 +267,5 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				ALUOp = `ADD;
 		end
 	end
-
 endmodule
 
