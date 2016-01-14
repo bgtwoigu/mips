@@ -323,10 +323,10 @@ module InstructionMemory(Data, Address);
          32'h520: Data = 32'h1528fffa; // BNE Rs=R9, Rt=R8, ...
          32'h524: Data = 32'hac0d000c; // SW Rs=R0, Rt=R13, displ=c
          32'h528: Data = 32'h8c0d000c; // LW Rs=R0, Rt=R13, displ=c
-			32'h52C: Data = 32'h00000000;
-			32'h530: Data = 32'h00000000;
-
-
+			32'h52C: Data = 32'h00000000; // to finish SW, LW
+			32'h530: Data = 32'h00000000;// to finish SW, LW
+			32'h534: Data = 32'h00000000;// to finish SW, LW
+			32'h538: Data = 32'h00000000;
 		/*
 			 * Test Program 7
 			 * Test Branch Prediction performance again
@@ -358,25 +358,27 @@ module InstructionMemory(Data, Address);
 				 lw $t5, 12($0) #load data back out of memory
 			  */  
 	 
-         32'h400: Data = 32'h240d0000;
-         32'h404: Data = 32'h24080064;
-         32'h408: Data = 32'h24090000;
-         32'h40C: Data = 32'h21290001;
-         32'h410: Data = 32'h240a0000;
-         32'h414: Data = 32'h214a0001;
-         32'h418: Data = 32'h314b0002;
-         32'h41C: Data = 32'h240c0001;
-         32'h420: Data = 32'h11600001;
-         32'h424: Data = 32'h240c0000;
-         32'h428: Data = 32'h11800001;
-         32'h42C: Data = 32'h21ad0001;
-         32'h430: Data = 32'h11490001;
-         32'h434: Data = 32'h08000105;
-         32'h438: Data = 32'h11280001;
-         32'h43C: Data = 32'h08000103;
-         32'h440: Data = 32'hac0d000c;
-         32'h444: Data = 32'h8c0d000c;
-
+         32'h400: Data = 32'h240d0000; // ADDIU Rs=R0, Rt=R13, imm=0
+         32'h404: Data = 32'h24080064; // ADDIU Rs=R0, Rt=R8, imm=0x64
+         32'h408: Data = 32'h24090000; // ADDIU Rs=R0, Rt=R9, imm=0
+         32'h40C: Data = 32'h21290001; // ADDI Rs=R9, Rt=R9, imm=1
+         32'h410: Data = 32'h240a0000; // ADDIU Rs=R0, Rt=R10, imm=0
+         32'h414: Data = 32'h214a0001; // ADDI Rs=R10, Rt=R10, imm=1
+         32'h418: Data = 32'h314b0002; // ANDI Rs=R10, Rt=R11, imm=2
+         32'h41C: Data = 32'h240c0001; // ADDIU Rs=R0, Rt=R12, imm=1
+         32'h420: Data = 32'h11600001; // BEQ Rs=R11, Rt=R0 off=1
+         32'h424: Data = 32'h240c0000; // ADDIU Rs=R0, Rt=R12 imm=0
+         32'h428: Data = 32'h11800001; // BEQ Rs=R12 Rt=R0 off=1
+         32'h42C: Data = 32'h21ad0001; // ADDI Rs=R13 Rt=R13 imm=1
+         32'h430: Data = 32'h11490001; // BEQ Rs=R10 Rt=R9 off=1
+         32'h434: Data = 32'h08000105; // J Addr=105=0x414
+         32'h438: Data = 32'h11280001; // BEQ Rs=R9 Rt=R8 off=1
+         32'h43C: Data = 32'h08000103; // J Addr=103=0x40c
+         32'h440: Data = 32'hac0d000c; // sw Rs=R0 Rt=R13 off=c
+         32'h444: Data = 32'h8c0d000c; // lw Rs=R0 Rt=R13 off=c
+			32'h448: Data = 32'h00000000;
+			32'h44C: Data = 32'h00000000;
+			32'h450: Data = 32'h00000000;			
 			
 			default: Data = 32'hXXXXXXXX;
 		endcase

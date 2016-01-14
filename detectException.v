@@ -26,6 +26,6 @@ module detectException(exception, cause, epc, pcPlus4, exceptionInst, exceptionA
 	
 	assign exception = (exceptionInst || exceptionALUCtrl || exceptionOverflow) ? 1 : 0;
 	assign cause = (exceptionInst | exceptionALUCtrl << 1 | exceptionOverflow << 2);
-	assign epc = exception ? pcPlus4 - 4 : 32'hFFFFFFFF;
+	assign epc = exception ? pcPlus4 - 4 : pcPlus4;
 
 endmodule

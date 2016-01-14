@@ -165,7 +165,7 @@ module PipelinedProcExcDyTest;
 		Reset_L = 0; startPC = 32'h500;
 		#(1 * `ClockPeriod);
 		Reset_L = 1;
-		wait( (EPC == 32'h52C) || (cc_counter == 66500)); 
+		wait( (EPC == 32'h534) || (cc_counter == 66500)); 
 		passTest(dMemOut, 32'h2710, "Result 1 of Program 6", passed);
 		$display("Run Time for Program 6: %d",cc_counter);
 		
@@ -174,7 +174,7 @@ module PipelinedProcExcDyTest;
 		Reset_L = 0; startPC = 32'h400;
 		#(1 * `ClockPeriod);
 		Reset_L = 1;
-		wait( (EPC == 32'h448) || (cc_counter == 665000)); 
+		wait( (EPC == 32'h450) || (cc_counter == 665000)); 
 		passTest(dMemOut, 32'h9DD, "Result 1 of Program 7", passed);
 		$display("Run Time for Program 7: %d",cc_counter);
 		

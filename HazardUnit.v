@@ -124,7 +124,14 @@ module HazardUnit(PC_Write, IF_Write, IF_Flush, bubble, addrSel,
 				end
 			end
 			`Branch0State : begin
-				if(needFlush) begin
+				if(Jump && !needFlush) begin
+					nextstate = `JumpState;
+					PC_Write = 1;
+					IF_Write = 0;
+					IF_Flush = 0;
+					bubble = 0;
+					addrSel = 2'b01;
+				end else if(needFlush) begin
 					nextstate = `Branch1State;
 					PC_Write = 1;
 					IF_Write = 0;
@@ -141,12 +148,21 @@ module HazardUnit(PC_Write, IF_Write, IF_Flush, bubble, addrSel,
 				end			
 			end
 			`Branch1State : begin
-				nextstate = `NoHazardState;
-				PC_Write = 1;
-				IF_Write = 1;
-				IF_Flush = 0;
-				bubble = 0;
-				addrSel = 2'b00;						
+				if(Jump) begin
+					nextstate = `JumpState;
+					PC_Write = 1;
+					IF_Write = 0;
+					IF_Flush = 0;
+					bubble = 0;
+					addrSel = 2'b01;
+				end else begin
+					nextstate = `NoHazardState;
+					PC_Write = 1;
+					IF_Write = 1;
+					IF_Flush = 0;
+					bubble = 0;
+					addrSel = 2'b00;						
+				end
 			end
 			`JumpState : begin
 				nextstate = `NoHazardState;
