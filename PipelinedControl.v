@@ -58,10 +58,11 @@
 
 // SingleCycleControl module
 module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch, 
-								Jump, Jal, Jr, SignExtend, ALUOp, Opcode, FuncCode);
+								Jump, Jal, Jr, SignExtend, ALUOp, OpInstError, Opcode, FuncCode);
 // declaration of input, output signals								
 	input [5:0] Opcode, FuncCode;
 	output reg [1:0] RegDst;
+	output reg OpInstError;
 	output reg MemToReg;
 	output reg RegWrite;
 	output reg MemRead;
@@ -85,6 +86,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				else Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `RTYP;
+				OpInstError = 0;
 		end else if(Opcode == `LWOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b1;
@@ -97,6 +99,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `ADD;
+				OpInstError = 0;
 		end else if(Opcode == `SWOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -109,6 +112,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `ADD;
+				OpInstError = 0;
 		end else if(Opcode == `BEQOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -121,6 +125,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `SUB;	
+				OpInstError = 0;
 		end else if(Opcode == `BNEOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -133,6 +138,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `SUB;				
+				OpInstError = 0;
 		end else if(Opcode == `JOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -145,6 +151,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = 4'b0;	
+				OpInstError = 0;
 		end else if(Opcode == `JALOPCODE) begin
 				RegDst = 2'b10;
 				MemToReg = 1'b0;
@@ -157,6 +164,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = 4'b0;	
+				OpInstError = 0;
 		end else if(Opcode == `ORIOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -169,6 +177,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `OR;				
+				OpInstError = 0;
 		end else if(Opcode == `ADDIOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -181,6 +190,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `ADD;				
+				OpInstError = 0;
 		end else if(Opcode == `ADDIUOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -193,6 +203,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `ADDU;		
+				OpInstError = 0;
 		end else if(Opcode == `ANDIOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -205,6 +216,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `AND;		
+				OpInstError = 0;
 		end else if(Opcode == `LUIOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -217,6 +229,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `LUI;			
+				OpInstError = 0;
 		end else if(Opcode == `SLTIOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -229,6 +242,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `SLT;			
+				OpInstError = 0;
 		end else if(Opcode == `SLTIUOPCODE) begin 
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -241,6 +255,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b1;
 				ALUOp = `SLTU;	
+				OpInstError = 0;
 		end else if(Opcode == `XORIOPCODE) begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -253,6 +268,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `XOR;	
+				OpInstError = 0;
 		end else begin
 				RegDst = 2'b00;
 				MemToReg = 1'b0;
@@ -265,6 +281,7 @@ module PipelinedControl(RegDst, MemToReg, RegWrite, MemRead, MemWrite, Branch,
 				Jr = 1'b0;
 				SignExtend = 1'b0;
 				ALUOp = `ADD;
+				OpInstError = 1;
 		end
 	end
 endmodule

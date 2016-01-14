@@ -21,6 +21,7 @@
 `define SLLFunc  6'b000000
 `define SRLFunc  6'b000010
 `define SRAFunc  6'b000011
+`define JRFunc	  6'b001000
 `define ADDFunc  6'b100000
 `define ADDUFunc 6'b100001
 `define SUBFunc  6'b100010
@@ -52,8 +53,9 @@
 // PipelinedALUControl module
 // input ALUop, FuncCode
 // output ALUCtrl. output is going to ALU input
-module PipelinedALUControl(ALUCtrl, ALUop, FuncCode);
+module PipelinedALUControl(ALUCtrl, RtypeInstError, ALUop, FuncCode);
 	output [3:0] ALUCtrl;
+	output reg RtypeInstError;
 	input [3:0] ALUop;
 	input [5:0] FuncCode;
 	reg [3:0] ALUCtrl;
@@ -64,25 +66,72 @@ module PipelinedALUControl(ALUCtrl, ALUop, FuncCode);
 		// if ALUop is R type, then generate correct ALUCtrl for each
 		if(ALUop == `RTYP) begin
 			case(FuncCode)
-				(`SLLFunc) : ALUCtrl <= `SLL;
-				(`SRLFunc) : ALUCtrl <= `SRL;
-				(`SRAFunc) : ALUCtrl <= `SRA;
-				(`ADDFunc) : ALUCtrl <= `ADD;
-				(`ADDUFunc) : ALUCtrl <= `ADDU;
-				(`SUBFunc) : ALUCtrl <= `SUB;
-				(`SUBUFunc) : ALUCtrl <= `SUBU;
-				(`ANDFunc) : ALUCtrl <= `AND;
-				(`ORFunc) : ALUCtrl <= `OR;
-				(`XORFunc) : ALUCtrl <= `XOR;
-				(`NORFunc) : ALUCtrl <= `NOR;
-				(`SLTFunc) : ALUCtrl <= `SLT;
-				(`SLTUFunc) : ALUCtrl <= `SLTU;
+				(`SLLFunc) : begin 
+					ALUCtrl <= `SLL;
+					RtypeInstError <= 0;
+				end
+				(`SRLFunc) : begin
+					ALUCtrl <= `SRL;
+					RtypeInstError <= 0;
+				end
+				(`SRAFunc) : begin
+					ALUCtrl <= `SRA;
+					RtypeInstError <= 0;
+				end
+				(`ADDFunc) : begin
+					ALUCtrl <= `ADD;
+					RtypeInstError <= 0;
+				end
+				(`ADDUFunc) : begin
+					ALUCtrl <= `ADDU;
+					RtypeInstError <= 0;
+				end
+				(`SUBFunc) : begin
+					ALUCtrl <= `SUB;
+					RtypeInstError <= 0;
+				end
+				(`SUBUFunc) : begin
+					ALUCtrl <= `SUBU;
+					RtypeInstError <= 0;
+				end
+				(`ANDFunc) : begin
+					ALUCtrl <= `AND;
+					RtypeInstError <= 0;
+				end
+				(`ORFunc) : begin
+					ALUCtrl <= `OR;
+					RtypeInstError <= 0;
+				end
+				(`XORFunc) : begin
+					ALUCtrl <= `XOR;
+					RtypeInstError <= 0;
+				end
+				(`NORFunc) : begin
+					ALUCtrl <= `NOR;
+					RtypeInstError <= 0;
+				end
+				(`SLTFunc) : begin
+					ALUCtrl <= `SLT;
+					RtypeInstError <= 0;
+				end
+				(`SLTUFunc) : begin
+					ALUCtrl <= `SLTU;
+					RtypeInstError <= 0;
+				end
+				(`JRFunc) : begin
+					ALUCtrl <= 4'bx;
+					RtypeInstError <= 0;
+				end
 //				(`MULAFunc) : ALUCtrl <= `MULA;
-				default : ALUCtrl <= 4'bx;
+				default : begin 
+					ALUCtrl <= 4'bx;
+					RtypeInstError <= 1;
+				end
 			endcase
 		end else begin
 		// if ALUop is not R type, then pass the ALUop to ALU directly
 			ALUCtrl <= ALUop;
+			RtypeInstError <= 0;
 		end
 	end
 endmodule

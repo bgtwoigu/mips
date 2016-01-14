@@ -150,13 +150,13 @@ module InstructionMemory(Data, Address);
 				lw $a1, 80($0)				# Load Value to test
 				nop							# Complete
 		*/
-			32'hA0: Data = 32'h3c01feed;
-			32'hA4: Data = 32'h3424beef;
-			32'hA8: Data = 32'hac040024;
-			32'hAC: Data = 32'h2085f5a0;
-			32'hB0: Data = 32'hac050028;
-			32'hB4: Data = 32'h2485f5a0; // addiu
-			32'hB8: Data = 32'hac05002c;
+			32'hA0: Data = 32'h3c01feed; // LUI Rs=R0, Rt=R1, imm=feed
+			32'hA4: Data = 32'h3424beef; // ORI Rs=R1, Rt=R4 imm=beef
+			32'hA8: Data = 32'hac040024; // sw Rs=R0, Rt=R4, displ=0x0024
+			32'hAC: Data = 32'h2485f5a0; // ADDIU Rs=R4, Rt=R5 imm=f5a0
+			32'hB0: Data = 32'hac050028; // sw Rs=R0, Rt=R5, displ=0x28
+			32'hB4: Data = 32'h2485f5a0; // addiu Rs=R4, Rt=R5 imm=f5a0
+			32'hB8: Data = 32'hac05002c; // sw Rs=R0, Rt=R5 displ=0x2c
 			32'hBC: Data = 32'h3085f5a0;
 			32'hC0: Data = 32'hac050030;
 			32'hC4: Data = 32'h00042940; // sll
@@ -215,24 +215,24 @@ module InstructionMemory(Data, Address);
 				lw $ra, 96($0)				# Load value for check
 
 		*/
-			32'h180: Data = 32'h3409feed;
-			32'h184: Data = 32'h34080190;
-			32'h188: Data = 32'h01000008;
-			32'h18C: Data = 32'h34090000;
-			32'h190: Data = 32'hac090054;
-			32'h194: Data = 32'h3408cafe;
-			32'h198: Data = 32'h0c000068;
-			32'h19C: Data = 32'h3408babe;
-			32'h1A0: Data = 32'hac080058;
-			32'h1A4: Data = 32'h340aface;
-			32'h1A8: Data = 32'h0800006c;
-			32'h1AC: Data = 32'h340a0000;
-			32'h1B0: Data = 32'hac0a005c;
-			32'h1B4: Data = 32'hac1f0060;
-			32'h1B8: Data = 32'h8c080054;
-			32'h1BC: Data = 32'h8c090058;
-			32'h1C0: Data = 32'h8c0a005c;
-			32'h1C4: Data = 32'h8c1f0060;
+			32'h180: Data = 32'h3409feed; // ORI Rs=R0, Rt=R9, imm=feed
+			32'h184: Data = 32'h34080190; // ORI Rs=R0, Rt=R8, imm=0190
+			32'h188: Data = 32'h01000008; // R, Rs=R8, Rt=R0, Rd=R0, func=Jr
+			32'h18C: Data = 32'h34090000; // ORI Rs=R0, Rt=Rt imm=0
+			32'h190: Data = 32'hac090054; // sw Rs=R0, Rt=R8, displ=54
+			32'h194: Data = 32'h3408cafe; // ORI Rs=R0, Rt=R8 imm=cafe
+			32'h198: Data = 32'h0c000068; // Jal Addr=68
+			32'h19C: Data = 32'h3408babe; // ORI Rs=R0, Rt=R8, imm=babe
+			32'h1A0: Data = 32'hac080058; // sw Rs=R0, Rt=R8, displ=58
+			32'h1A4: Data = 32'h340aface; // ORI Rs=R0, Rt=R10, imm=face
+			32'h1A8: Data = 32'h0800006c; // J Addr = 6c
+			32'h1AC: Data = 32'h340a0000; // ORI Rs=R0, Rt=R10, imm=0
+			32'h1B0: Data = 32'hac0a005c; // sw Rs=R0, Rt=R10, displ=5c
+			32'h1B4: Data = 32'hac1f0060; // sw Rs=R0, Rt=R31 imm=60
+			32'h1B8: Data = 32'h8c080054; // lw Rs=R0, Rt=R8, displ=54
+			32'h1BC: Data = 32'h8c090058; // lw Rs=R0, Rt=R9 displ=58
+			32'h1C0: Data = 32'h8c0a005c; // lw Rs=R0, Rt=R10, displ=5C
+			32'h1C4: Data = 32'h8c1f0060; // lw Rs=R0, Rt=R11, displ=60
 			32'h1C8: Data = 32'h00000000;
 
 			
@@ -264,26 +264,26 @@ module InstructionMemory(Data, Address);
 				mula $t0, $t0, $t0
 				lw $t0, 4($0)
 		*/
-			32'h300: Data = 32'h3c018000;
-			32'h304: Data = 32'h34288000;
-			32'h308: Data = 32'h01084020;
-			32'h30C: Data = 32'h8c080004;
+			32'h300: Data = 32'h3c018000;  // LUI Rs=R0, Rt=R1 imm=8000
+			32'h304: Data = 32'h34288000;  // ORI Rs=R1, Rt=R8 imm=8000
+			32'h308: Data = 32'h01084020;	 // R, add, Rs=R8, Rt=R8, Rd=R8
+			32'h30C: Data = 32'h8c080004;  // LW Rs=R0, Rt=R8, displ=4
 			
-			32'h310: Data = 32'h3c017fff;
-			32'h314: Data = 32'h34287fff;
-			32'h318: Data = 32'h01084020;
-			32'h31C: Data = 32'h8c080004;
+			32'h310: Data = 32'h3c017fff;  // LUI Rs=R0, Rt=R1 imm=7fff
+			32'h314: Data = 32'h34287fff;  // ORI Rs=R1, Rt=R8, imm=7fff
+			32'h318: Data = 32'h01084020;  // R, add, Rs=R8, Rt=R8, Rd=R8
+			32'h31C: Data = 32'h8c080004;  // LW Rs=R0, Rt=R8, displ=4
 			
-			32'h320: Data = 32'h8c080004;
-			32'h324: Data = 32'h3c088000;
-			32'h328: Data = 32'h34090001;
-			32'h32C: Data = 32'h01094022;
-			32'h330: Data = 32'h8c080004;
+			32'h320: Data = 32'h8c080004;  // LW Rs=R0, Rt=R8, displ=4
+			32'h324: Data = 32'h3c088000;  // LUI Rs=R0, Rt=R8 imm=8000
+			32'h328: Data = 32'h34090001;  // ORI Rs=R0, Rt=R9, imm=1
+			32'h32C: Data = 32'h01094022;  // R, sub Rs=R8, Rt=R9 Rd=R8
+			32'h330: Data = 32'h8c080004;  // LW Rs=R0, Rt=R8, displ=4
 			
-			32'h334: Data = 32'h3c017FFF;
-			32'h338: Data = 32'h3428FFFF;
-			32'h33C: Data = 32'h01084038;
-			32'h340: Data = 32'h8c080004;
+			32'h334: Data = 32'h3c017FFF;  // LUI Rs=R0, Rt=R1 imm=7fff
+			32'h338: Data = 32'h3428FFFF;  // ORI Rs=R1, Rt=R8 imm=ffff
+			32'h33C: Data = 32'h01084038;  // R, ?, Rs=R8, Rt=R8, Rd=R8, exception
+			32'h340: Data = 32'h8c080004;  // LW Rs=R0, Rt=R8, displ=4
 
 		/*
 		 * Overflow Exception
@@ -312,17 +312,19 @@ module InstructionMemory(Data, Address);
 				 sw $t5, 12($0) #store data into memory
 				 lw $t5, 12($0) #load data back out of memory
 		*/
-         32'h500: Data = 32'h240d0000;
-         32'h504: Data = 32'h24080064;
-         32'h508: Data = 32'h24090000;
-         32'h50C: Data = 32'h21290001;
-         32'h510: Data = 32'h240a0000;
-         32'h514: Data = 32'h214a0001;
-         32'h518: Data = 32'h21ad0001;
-         32'h51C: Data = 32'h1548fffd;
-         32'h520: Data = 32'h1528fffa;
-         32'h524: Data = 32'hac0d000c;
-         32'h528: Data = 32'h8c0d000c;
+         32'h500: Data = 32'h240d0000; // ADDIU Rs=R0, Rt=R13, imm=0
+         32'h504: Data = 32'h24080064; // ADDIU Rs=R0, Rt=R8, imm=0x64
+         32'h508: Data = 32'h24090000; // ADDIU Rs=R0, Rt=R9, imm=0
+         32'h50C: Data = 32'h21290001; // ADDI Rs=R9, Rt=R9, imm=1
+         32'h510: Data = 32'h240a0000; // ADDIU Rs=R0, Rt=R10, imm=0
+         32'h514: Data = 32'h214a0001; // ADDI Rs=R10, Rt=R10, imm=1
+         32'h518: Data = 32'h21ad0001; // ADDI Rs=R13, Rt=R13, imm=1
+         32'h51C: Data = 32'h1548fffd; // BNE Rs=R10, Rt=R8, addr=PC+4+fffd
+         32'h520: Data = 32'h1528fffa; // BNE Rs=R9, Rt=R8, ...
+         32'h524: Data = 32'hac0d000c; // SW Rs=R0, Rt=R13, displ=c
+         32'h528: Data = 32'h8c0d000c; // LW Rs=R0, Rt=R13, displ=c
+			32'h52C: Data = 32'h00000000;
+			32'h530: Data = 32'h00000000;
 
 
 		/*

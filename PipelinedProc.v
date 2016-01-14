@@ -35,8 +35,8 @@
 module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 	input CLK;
 	input Reset_L;
-	input [31:0] startPC;
-	input	[31:0] exceptAddr, Cause, EPC;
+	input [31:0] startPC, exceptAddr;
+	output	[31:0] Cause, EPC;
 	output [31:0] dMemOut;
 
 	//Stage 1
@@ -66,7 +66,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 
 	wire [1:0] ID_AluOpCtrlA, ID_AluOpCtrlB, regDst;
 	wire ID_DataMemForwardCtrl_EX, ID_DataMemForwardCtrl_MEM;
-	wire	memToReg, regWrite, memRead, memWrite, jump, jal, jr, signExtend;
+	wire	memToReg, regWrite, memRead, memWrite, jump, jal, jr, signExtend, opInstError;
 	wire 	[1:0] branch;
 	wire	UseShiftField, UseImmed;
 	wire	rsUsed, rtUsed;
@@ -93,10 +93,10 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 	wire	[31:0]	branchTargetNonSpec3, aluOut, exOut;
 	reg	regWrite3;
 	reg	[1:0] branch3;
-	reg	memToReg3, memRead3, memWrite3, jal3;
+	reg	memToReg3, memRead3, memWrite3, jal3, opInstError3;
 	reg 	[1:0] regDst3;
 	reg	[3:0]	aluOp3;
-	wire 	needFlush;
+	wire 	needFlush, RtypeInstError, overflow, exception;
 	reg	taken3;
 	
 	//Stage 4
@@ -155,7 +155,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 	assign imm16 = Instruction2[15:0];
 	
 	PipelinedControl controller(regDst, memToReg, regWrite, memRead, memWrite, 
-										branch, jump, jal, jr, signExtend, aluOp, opcode, func);
+										branch, jump, jal, jr, signExtend, aluOp, opInstError, opcode, func);
 	assign rw = (regDst==2'b00) ? rt : (regDst==2'b01) ? rd : (regDst==2'b10) ? 5'b11111 : 5'bxxxxx;
 	assign UseShiftField = ((aluOp == 4'b1111) && ((func == 6'b000000) || (func == 6'b000010) || (func == 6'b000011)));
 	assign rsUsed = (opcode != 6'b001111/*LUI*/) & ~UseShiftField;
@@ -171,7 +171,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 								ID_DataMemForwardCtrl_EX, ID_DataMemForwardCtrl_MEM);
 								
 	assign rwRegW3_rwRegW4 = {rw3, regWrite3, rw4, regWrite4};
-	HazardUnit hazard(pc_Write, IF_Write, IF_Flush, bubble, addrSel, taken2, needFlush, 
+	HazardUnit hazard(pc_Write, IF_Write, IF_Flush, bubble, addrSel, exception, taken2, needFlush, 
 							jump, jr, branch, aluZero, memRead3,
 							rsUsed ? rs : 5'b0,	
 							rtUsed ? rt : 5'b0, 
@@ -209,6 +209,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 			IDEX_currentPCPlus4 <= 0;
 			branch3 <= 0;
 			taken3 <= 0;
+			opInstError3 <= 0;
 		end else if(bubble) begin
 			IDEX_busA <= 0;
 			IDEX_busB <= 0;
@@ -232,6 +233,7 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 			IDEX_currentPCPlus4 <= 0;
 			branch3 <= 0;
 			taken3 <= 0;
+			opInstError3 <= 0;
 		end else begin
 			IDEX_busA <= busA;
 			IDEX_busB <= busB;
@@ -255,11 +257,18 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 			IDEX_currentPCPlus4 <= IFID_currentPCPlus4;
 			branch3 <= branch;
 			taken3 <= taken2;
+			opInstError3 <= opInstError;
 		end 
 	end
 	
-	Flush fh(needFlush, branch3, taken3, aluZero);
-	assign branchTargetNonSpec3 = (!taken3 && needFlush) ? branchDst3 : IDEX_currentPCPlus4;
+	Flush fh(needFlush, exception, branch3, taken3, aluZero);
+	detectException detExc(exception, Cause, EPC, 
+									IDEX_currentPCPlus4, opInstError3, RtypeInstError, overflow);
+									
+	assign branchTargetNonSpec3 = exception ? exceptAddr :
+											(!taken3 && needFlush) ? branchDst3 : 
+											IDEX_currentPCPlus4;
+											
 	assign ALUAIn = (IDEX_AluOpCtrlA == 2'b00) ? signExtImm3[10:6] :  /*shamt3*/
 							 (IDEX_AluOpCtrlA == 2'b01) ? regWriteData :
 							 (IDEX_AluOpCtrlA == 2'b10) ? aluOut4 : IDEX_busA;
@@ -272,8 +281,8 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 	assign EX_Rw = (regDst3==2'b00) ? rt3 : (regDst3==2'b01) ? rw3 : (regDst==2'b10) ? 5'b11111 : 5'bxxxxx;
 	assign busB3 = IDEX_DataMemForwardCtrl_EX ? regWriteData : IDEX_busB;
 	assign func3 = signExtImm3[5:0];
-	PipelinedALUControl mainALUControl(aluCtrl, aluOp3, func3);
-	PipelinedALU mainALU(aluOut, aluZero, ALUAIn, ALUBIn, aluCtrl);
+	PipelinedALUControl mainALUControl(aluCtrl, RtypeInstError, aluOp3, func3);
+	PipelinedALU mainALU(aluOut, aluZero, overflow, ALUAIn, ALUBIn, aluCtrl);
 
 	assign exOut = jal3 ? IDEX_currentPCPlus4 : aluOut;
 
@@ -290,8 +299,17 @@ module PipelinedProc(CLK, Reset_L, startPC, exceptAddr, dMemOut, Cause, EPC);
 			memRead4 <= 0;
 			memWrite4 <= 0;
 			Instruction4 <= 0;
-		end
-		else begin
+		end else if(exception) begin
+			aluOut4 <= 0;
+			EXMEM_busB <= 0;
+			EXMEM_DataMemForwardCtrl_MEM <= 0;
+			rw4 <= 0;
+			memToReg4 <= 0;
+			regWrite4 <= 0;
+			memRead4 <= 0;
+			memWrite4 <= 0;
+			Instruction4 <= 0;		
+		end else begin
 			aluOut4 <= exOut;
 			EXMEM_busB <= busB3;
 			EXMEM_DataMemForwardCtrl_MEM <= IDEX_DataMemForwardCtrl_MEM;
