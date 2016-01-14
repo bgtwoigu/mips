@@ -4,7 +4,7 @@
 `define STRLEN 32
 `define HalfClockPeriod 60
 `define ClockPeriod `HalfClockPeriod * 2
-module PipelinedProcJrJalTest;
+module PipelinedProcExcDyTest;
 
 	task passTest;
 		input [31:0] actualOut, expectedOut;
@@ -27,11 +27,13 @@ module PipelinedProcJrJalTest;
 	reg CLK;
 	reg Reset_L;
 	reg [31:0] startPC;
+	reg [31:0] exceptAddr;
 	reg [7:0] passed;
 
 
 	// Outputs
 	wire [31:0] dMemOut;
+	wire [31:0] Cause, EPC;
 
 	//book keeping
 	reg [31:0] cc_counter;
@@ -56,8 +58,11 @@ module PipelinedProcJrJalTest;
 	PipelinedProc uut (
 		.CLK(CLK), 
 		.Reset_L(Reset_L), 
-		.startPC(startPC), 
-		.dMemOut(dMemOut)
+		.startPC(startPC),
+      .exceptAddr(exceptAddr),
+		.dMemOut(dMemOut),
+		.Cause(Cause),
+		.EPC(EPC)
 	);
 
 	initial begin
@@ -65,6 +70,7 @@ module PipelinedProcJrJalTest;
 		Reset_L = 1;
 		startPC = 0;
 		passed = 0;
+		exceptAddr = 32'hF0000000;
 		
 		// Wait for global reset
 		#(1 * `ClockPeriod);
@@ -82,18 +88,19 @@ module PipelinedProcJrJalTest;
 		Reset_L = 0; startPC = 32'h60;
 		#(1 * `ClockPeriod);
 		Reset_L = 1;
-		#(34 * `ClockPeriod);
+		#(15 * `ClockPeriod);
 		passTest(dMemOut, 2, "Results of Program 2", passed);
 		
 		// Program 3
 		#(1 * `ClockPeriod);
 		Reset_L = 0; startPC = 32'hA0;
 		#(1 * `ClockPeriod);
+//		exceptAddr = 32'hB0;
 		Reset_L = 1;
 		#(29 * `ClockPeriod);
 		passTest(dMemOut, 32'hfeedbeef, "Result 1 of Program 3", passed);
 		#(1 * `ClockPeriod);
-		passTest(dMemOut, 32'hfeedb48f, "Result 2 of Program 3", passed);
+		passTest(dMemOut, 32'hfeeeb48f, "Result 2 of Program 3", passed);
 		#(1 * `ClockPeriod);
 		passTest(dMemOut, 32'hfeeeb48f, "Result 3 of Program 3", passed);
 		#(1 * `ClockPeriod);
@@ -128,8 +135,53 @@ module PipelinedProcJrJalTest;
 		passTest(dMemOut, 32'hface, "Result 3 of Program 4", passed);
 		#(1 * `ClockPeriod);
 		passTest(dMemOut, 32'h19C, "Result 4 of Program 4", passed);
+		
+		
+		// Program 5
+		#(1 * `ClockPeriod);
+		Reset_L = 0; startPC = 32'h300;
+		exceptAddr = 32'h500;
+		#(1 * `ClockPeriod);
+		Reset_L = 1;
+		#(9 * `ClockPeriod);
+		passTest(dMemOut, 32'h28, "Result 1 of Program 5", passed);
+	
+		#(1 * `ClockPeriod);
+		Reset_L = 0; startPC = 32'h310;
+		#(1 * `ClockPeriod);
+		Reset_L = 1;
+		#(9 * `ClockPeriod);
+		passTest(dMemOut, 32'h28, "Result 2 of Program 5", passed);
+		
+		#(1 * `ClockPeriod);
+		Reset_L = 0; startPC = 32'h320;
+		#(1 * `ClockPeriod);
+		Reset_L = 1;
+		#(10 * `ClockPeriod);
+		passTest(dMemOut, 32'h28, "Result 3 of Program 5", passed);
+
+		//Program 6
+		#(1 * `ClockPeriod);
+		Reset_L = 0; startPC = 32'h500;
+		#(1 * `ClockPeriod);
+		Reset_L = 1;
+		wait( (EPC == 32'h52C) || (cc_counter == 66500)); 
+		passTest(dMemOut, 32'h2710, "Result 1 of Program 6", passed);
+		$display("Run Time for Program 6: %d",cc_counter);
+		
+		//Program 7
+		#(1 * `ClockPeriod);
+		Reset_L = 0; startPC = 32'h400;
+		#(1 * `ClockPeriod);
+		Reset_L = 1;
+		wait( (EPC == 32'h448) || (cc_counter == 665000)); 
+		passTest(dMemOut, 32'h9DD, "Result 1 of Program 7", passed);
+		$display("Run Time for Program 7: %d",cc_counter);
+		
 		// Done
-		allPassed(passed, 18);
+		allPassed(passed, 23);
 		$finish;
 	end
+	
+	   
 endmodule
