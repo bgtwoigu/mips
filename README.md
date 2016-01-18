@@ -14,3 +14,5 @@ MIPS Microprocessor
 -. imple dynamic branch prediction using branch history table
 
 -. imple exception
+
+-. imple instruction cache but bug in branch instruction
