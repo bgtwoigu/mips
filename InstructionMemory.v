@@ -104,6 +104,9 @@ module InstructionMemory(Data, Address);
 			32'h80: Data = 32'hac890000;
 			32'h84: Data = 32'h8c090020;
 			32'h88: Data = 32'h00000000;
+			32'h8C: Data = 32'h00000000;
+			32'h90: Data = 32'h00000000;			
+		
 		
 		/*
 		 * Test Program 3

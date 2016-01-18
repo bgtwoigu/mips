@@ -25,13 +25,13 @@
 `define Branch0State		3'b100
 `define Branch1State		3'b101
 
-module HazardUnit(PC_Write, IF_Write, IF_Flush, bubble, addrSel, 
-						exception, taken, needFlush, Jump, Jr, Branch, 
+module HazardUnitCacheMiss(PC_Write, IF_Write, IF_Flush, bubble, addrSel, 
+						CacheMiss, exception, taken, needFlush, Jump, Jr, Branch, 
 						ALUZero,	memReadEX, currRs, currRt, prevRt, 
 						rwRegW3_rwRegW4, UseShamt, UseImmed, Clk, Rst);
 	output reg IF_Write, IF_Flush, PC_Write, bubble;
 	output reg [1:0] addrSel;
-	input taken, needFlush, Jump, Jr, ALUZero, memReadEX, Clk, Rst;
+	input CacheMiss, taken, needFlush, Jump, Jr, ALUZero, memReadEX, Clk, Rst;
 	input exception, UseShamt, UseImmed;
 	input [1:0] Branch;
 	input [4:0] currRs, currRt, prevRt;
@@ -54,7 +54,14 @@ module HazardUnit(PC_Write, IF_Write, IF_Flush, bubble, addrSel,
 	always @(*) begin
 		case(currstate)
 			`NoHazardState : begin
-				if(exception) begin
+				if(CacheMiss) begin
+					nextstate = `NoHazardState;
+					PC_Write = 0;
+					IF_Write = 1;
+					IF_Flush = 0;
+					bubble = 0;
+					addrSel = 2'b00;
+				end else if(exception) begin
 					nextstate = `NoHazardState;
 					PC_Write = 1;
 					IF_Write = 0;
